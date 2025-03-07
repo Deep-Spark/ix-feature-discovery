@@ -33,15 +33,18 @@ func NewIXDeviceLabeler(manager resource.Manager, config *config.Config) (Labele
 		return nil, fmt.Errorf("failed to initialize resource manager: %v", err)
 	}
 	defer func() {
-		_ = manager.Shutdown()
+		if err := manager.Shutdown(); err != nil {
+			klog.Errorf("failed to shutdown resource manager: %v", err)
+		}
 	}()
 
 	devices, err := manager.GetDevices()
 	if err != nil {
-		return nil, fmt.Errorf("error getting devices: %v", err)
+		return nil, fmt.Errorf("error retrieving devices: %v", err)
 	}
 
 	if len(devices) == 0 {
+		klog.Info("No devices detected, returning empty labeler")
 		return empty{}, nil
 	}
 
@@ -73,12 +76,12 @@ func NewIXDeviceLabeler(manager resource.Manager, config *config.Config) (Labele
 func ixmlVersionLabeler(manager resource.Manager) (Labeler, error) {
 	driverVersion, err := manager.GetIXDriverVersion()
 	if err != nil {
-		return nil, fmt.Errorf("error getting ix driver version: %v", err)
+		return nil, fmt.Errorf("error retrieving ix driver version: %v", err)
 	}
 
 	driverVersionSplit := strings.Split(driverVersion, ".")
 	if len(driverVersionSplit) > 3 || len(driverVersionSplit) < 2 {
-		return nil, fmt.Errorf("error getting driver version: Version \"%s\" does not match format \"X.Y[.Z]\"", driverVersion)
+		return nil, fmt.Errorf("invalid driver version format: Version \"%s\" does not match format \"X.Y[.Z]\"", driverVersion)
 	}
 
 	driverMajor := driverVersionSplit[0]
@@ -90,7 +93,7 @@ func ixmlVersionLabeler(manager resource.Manager) (Labeler, error) {
 
 	cudaMajor, cudaMinor, err := manager.GetCudaRuntimeVersion()
 	if err != nil {
-		return nil, fmt.Errorf("error getting cuda driver version: %v", err)
+		return nil, fmt.Errorf("error retrieving CUDA runtime version: %v", err)
 	}
 
 	labels := Labels{
@@ -109,11 +112,12 @@ func ixmlVersionLabeler(manager resource.Manager) (Labeler, error) {
 func newIXResourceLabeler(manager resource.Manager) (Labeler, error) {
 	devices, err := manager.GetDevices()
 	if err != nil {
-		return nil, fmt.Errorf("error getting devices: %v", err)
+		return nil, fmt.Errorf("error retrieving devices: %v", err)
 	}
 
-	// If no GPUs are detected, we return an empty labeler
+	// Return an empty labeler if no GPUs are detected
 	if len(devices) == 0 {
+		klog.Info("No GPUs detected, returning empty labeler")
 		return empty{}, nil
 	}
 
@@ -122,13 +126,13 @@ func newIXResourceLabeler(manager resource.Manager) (Labeler, error) {
 	for _, dev := range devices {
 		name, err := dev.GetName()
 		if err != nil {
-			return nil, fmt.Errorf("error getting device name: %v", err)
+			return nil, fmt.Errorf("error retrieving device name: %v", err)
 		}
 		memory, err := dev.GetTotalMemoryMB()
 		if err != nil {
-			return nil, fmt.Errorf("error getting device memory: %v", err)
+			return nil, fmt.Errorf("error retrieving device memory: %v", err)
 		}
-		klog.Infof("success to get the memory of device %s: %d (MB)", name, memory)
+		klog.Infof("Successfully retrieved memory for device %s: %d (MB)", name, memory)
 
 		counts[name]++
 		memorys[name] = strconv.Itoa(int(memory))

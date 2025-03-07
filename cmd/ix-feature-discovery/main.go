@@ -102,10 +102,10 @@ func (cfg *Config) loadConfig(ctx *cli.Context) (*config.Config, error) {
 
 func start(ctx *cli.Context, cfg *Config) error {
 	defer func() {
-		klog.Info("Exiting")
+		klog.Info("Exiting IX Feature Discovery.")
 	}()
 
-	klog.Info("Starting OS watcher.")
+	klog.Info("Initializing OS signal watcher.")
 	sigs := utils.Signals(syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	for {
@@ -120,7 +120,7 @@ func start(ctx *cli.Context, cfg *Config) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal config to JSON: %v", err)
 		}
-		klog.Infof("\nRunning with config:\n%v", string(configJSON))
+		klog.Infof("\nRunning with the following configuration:\n%s", string(configJSON))
 
 		manager := resource.NewIXMLManager()
 
@@ -168,7 +168,7 @@ func (d *ixfd) run(sigs chan os.Signal) (restart bool, err error) {
 		}
 		err := removeOutputFile(*d.config.Flags.OutputFile)
 		if err != nil {
-			klog.Warningf("Error removing output file: %v", err)
+			klog.Warningf("Warning: %v", err)
 		}
 	}()
 
@@ -193,12 +193,12 @@ rerun:
 		klog.Warning("No labels generated from any source")
 	}
 
-	klog.Info("Creating Labels")
+	klog.Info("Applying generated labels to the node.")
 	if err := d.labelOutputer.Output(labels); err != nil {
 		return false, err
 	}
 
-	klog.Info("Sleeping ", time.Duration(*d.config.Flags.SleepInterval).String())
+	klog.Infof("Sleeping for %s before re-evaluating labels.", time.Duration(*d.config.Flags.SleepInterval).String())
 	rerunTimeout := time.After(time.Duration(*d.config.Flags.SleepInterval))
 
 	for {
@@ -214,7 +214,7 @@ rerun:
 				klog.Info("Received SIGHUP, restarting.")
 				return true, nil
 			default:
-				klog.Infof("Received signal %v, shutting down.", s)
+				klog.Infof("Received signal %v, shutting down gracefully.", s)
 				return false, nil
 			}
 		}

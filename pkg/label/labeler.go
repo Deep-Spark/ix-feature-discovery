@@ -32,7 +32,7 @@ import (
 // Labels defines a type for labels
 type Labels map[string]string
 
-// Labels also implements the Labeler interface
+// Labels method returns the labels as is, implementing the Labeler interface
 func (labels Labels) Labels() (Labels, error) {
 	return labels, nil
 }
@@ -40,6 +40,7 @@ func (labels Labels) Labels() (Labels, error) {
 // empty represents an empty set of labels
 type empty struct{}
 
+// Labels method returns an empty set of labels, implementing the Labeler interface
 func (manager empty) Labels() (Labels, error) {
 	return nil, nil
 }
@@ -49,7 +50,7 @@ type Labeler interface {
 	Labels() (Labels, error)
 }
 
-// labelerList represents a list of labelers that iself implements the Labeler interface.
+// labelerList represents a list of labelers that itself implements the Labeler interface.
 type labelerList []Labeler
 
 // Merge converts a set of labelers to a single composite labeler.
@@ -59,7 +60,7 @@ func Merge(labelers ...Labeler) Labeler {
 	return list
 }
 
-// Labels returns the labels from a set of labelers. Labels later in the list
+// Labels method returns the labels from a set of labelers. Labels later in the list
 // overwrite earlier labels.
 func (labelers labelerList) Labels() (Labels, error) {
 	allLabels := make(Labels)
@@ -98,6 +99,7 @@ func NewTimestampLabeler(config *config.Config) Labeler {
 	}
 }
 
+// newMachineTypeLabeler creates a new labeler for machine type based on the provided path
 func newMachineTypeLabeler(machineTypePath string) (Labeler, error) {
 	machineType, err := getMachineType(machineTypePath)
 	if err != nil {
@@ -106,7 +108,7 @@ func newMachineTypeLabeler(machineTypePath string) (Labeler, error) {
 	}
 
 	machineType = sanitise(machineType)
-	klog.Infof("success to get machine type: %s ", machineType)
+	klog.Infof("Successfully got machine type: %s", machineType)
 
 	l := Labels{
 		nodeLabelPrefix + "/gpu.machine": machineType,
@@ -115,6 +117,7 @@ func newMachineTypeLabeler(machineTypePath string) (Labeler, error) {
 	return l, nil
 }
 
+// getMachineType reads the machine type from the specified path
 func getMachineType(path string) (string, error) {
 	if path == "" {
 		return machineTypeUnknown, nil
@@ -127,11 +130,12 @@ func getMachineType(path string) (string, error) {
 	return strings.TrimSpace(string(data)), nil
 }
 
+// sanitise removes any non-alphanumeric characters and extra spaces from the input string
 func sanitise(input string) string {
 	var sanitised string
 	re := regexp.MustCompile("[^A-Za-z0-9-_. ]")
 	input = re.ReplaceAllString(input, "")
-	// remove redundant blank spaces
+	// Remove redundant blank spaces
 	sanitised = strings.Join(strings.Fields(input), "-")
 
 	return sanitised

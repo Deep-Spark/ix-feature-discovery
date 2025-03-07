@@ -41,7 +41,7 @@ type NodeFeatureOutputer struct {
 	nfdClientSet nfdclientset.Interface
 }
 
-// NewOutputer create a NodeFeatureOutputer.
+// NewOutputer creates a NodeFeatureOutputer.
 func NewOutputer(config *config.Config, nodeConfig config.NodeConfig, clientSets config.ClientSets) (Outputer, error) {
 	if nodeConfig.Name == "" {
 		return nil, fmt.Errorf("required flag node-name not set")
@@ -56,7 +56,7 @@ func NewOutputer(config *config.Config, nodeConfig config.NodeConfig, clientSets
 	return &out, nil
 }
 
-// Output creates/updates the node-specific NodeFeature custom resource.
+// Output creates or updates the node-specific NodeFeature custom resource.
 func (n *NodeFeatureOutputer) Output(labels Labels) error {
 	nodename := n.nodeConfig.Name
 	if nodename == "" {
@@ -66,35 +66,33 @@ func (n *NodeFeatureOutputer) Output(labels Labels) error {
 	nodeFeatureName := strings.Join([]string{nodeFeaturePrefix, nodename}, "-")
 
 	if nfr, err := n.nfdClientSet.NfdV1alpha1().NodeFeatures(namespace).Get(context.TODO(), nodeFeatureName, metav1.GetOptions{}); errors.IsNotFound(err) {
-		klog.Infof("creating NodeFeature object %s", nodeFeatureName)
+		klog.Infof("Creating NodeFeature object %s in namespace %s", nodeFeatureName, namespace)
 		nfr = &nfdv1alpha1.NodeFeature{
 			TypeMeta:   metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{Name: nodeFeatureName, Labels: map[string]string{nfdv1alpha1.NodeFeatureObjNodeNameLabel: nodename}},
 			Spec:       nfdv1alpha1.NodeFeatureSpec{Features: *nfdv1alpha1.NewFeatures(), Labels: labels},
 		}
-
 		nfrCreated, err := n.nfdClientSet.NfdV1alpha1().NodeFeatures(namespace).Create(context.TODO(), nfr, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to create NodeFeature object %q: %w", nfr.Name, err)
 		}
-
-		klog.Infof("NodeFeature object created: %v", nfrCreated)
+		klog.Infof("NodeFeature object %s created successfully: %v", nfrCreated.Name, nfrCreated)
 	} else if err != nil {
-		return fmt.Errorf("failed to get NodeFeature object: %w", err)
+		return fmt.Errorf("failed to get NodeFeature object %s: %w", nodeFeatureName, err)
 	} else {
 		nfrUpdated := nfr.DeepCopy()
 		nfrUpdated.Labels = map[string]string{nfdv1alpha1.NodeFeatureObjNodeNameLabel: nodename}
 		nfrUpdated.Spec = nfdv1alpha1.NodeFeatureSpec{Features: *nfdv1alpha1.NewFeatures(), Labels: labels}
 
 		if !equality.Semantic.DeepEqual(nfr, nfrUpdated) {
-			klog.Infof("updating NodeFeature object %s", nodeFeatureName)
+			klog.Infof("Updating NodeFeature object %s in namespace %s", nodeFeatureName, namespace)
 			nfrUpdated, err = n.nfdClientSet.NfdV1alpha1().NodeFeatures(namespace).Update(context.TODO(), nfrUpdated, metav1.UpdateOptions{})
 			if err != nil {
 				return fmt.Errorf("failed to update NodeFeature object %q: %w", nfr.Name, err)
 			}
-			klog.Infof("NodeFeature object updated: %v", nfrUpdated)
+			klog.Infof("NodeFeature object %s updated successfully: %v", nfrUpdated.Name, nfrUpdated)
 		} else {
-			klog.Infof("no changes in NodeFeature object, not updating")
+			klog.Infof("No changes detected in NodeFeature object %s, skipping update", nodeFeatureName)
 		}
 	}
 	return nil
