@@ -115,10 +115,13 @@ func newIXResourceLabeler(manager resource.Manager) (Labeler, error) {
 		return nil, fmt.Errorf("error retrieving devices: %v", err)
 	}
 
-	// Return an empty labeler if no GPUs are detected
+	var labelers labelerList
 	if len(devices) == 0 {
-		klog.Info("No GPUs detected, returning empty labeler")
-		return empty{}, nil
+		klog.Info("No GPUs detected, setting gpu.present to false")
+		labelers = append(labelers, Labels{nodeLabelPrefix + "/gpu.present": "false"})
+	} else {
+		klog.Info("GPUs detected, setting gpu.present to true")
+		labelers = append(labelers, Labels{nodeLabelPrefix + "/gpu.present": "true"})
 	}
 
 	counts := make(map[string]int)
@@ -145,8 +148,6 @@ func newIXResourceLabeler(manager resource.Manager) (Labeler, error) {
 		}
 		klog.Warningf("Multiple device types detected: %v", names)
 	}
-
-	var labelers labelerList
 
 	for name, count := range counts {
 		l := Labels{

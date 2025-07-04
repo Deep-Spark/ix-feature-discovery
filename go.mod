@@ -2,7 +2,7 @@ module gitee.com/deep-spark/ix-feature-discovery
 
 go 1.22.2
 
-require gitee.com/deep-spark/go-ixml v0.0.0-20250211103053-213f0580a074
+require gitee.com/deep-spark/go-ixml v0.0.0-20250402060659-7a8e7dc6e049
 
 require (
 	github.com/urfave/cli/v2 v2.27.5
