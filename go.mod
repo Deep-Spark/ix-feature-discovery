@@ -1,6 +1,8 @@
 module gitee.com/deep-spark/ix-feature-discovery
 
-go 1.22.2
+go 1.23.0
+
+toolchain go1.24.6
 
 require gitee.com/deep-spark/go-ixml v0.0.0-20250402060659-7a8e7dc6e049
 
@@ -40,7 +42,7 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/oauth2 v0.21.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/term v0.26.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
