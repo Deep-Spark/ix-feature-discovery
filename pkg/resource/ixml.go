@@ -112,14 +112,21 @@ var _ Device = (*ixmlDevice)(nil)
 
 // GetName returns the device name.
 func (d ixmlDevice) GetName() (string, error) {
-	name, ret := d.Device.GetName() // name example: "Iluvatar BI-V150S"
+	name, ret := d.Device.GetName() // name example: "Iluvatar BI-V150S", "MR-V100X"
 	if ret != ixml.SUCCESS {
 		return "", fmt.Errorf("failed to get device name: %v", ret)
 	}
 	klog.Infof("success to get device name: %s", name)
 
-	productName := strings.Split(name, " ")[1]
-	return productName, nil
+	prefixes := []string{"Iluvatar", "iluvatar"}
+	for _, prefix := range prefixes {
+		if len(name) >= len(prefix) && name[:len(prefix)] == prefix {
+			name = name[len(prefix):]
+			break
+		}
+	}
+
+	return strings.TrimSpace(name), nil
 }
 
 // GetTotalMemoryMB returns the total memory on a device in MB
